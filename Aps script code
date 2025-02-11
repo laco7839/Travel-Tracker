@@ -1,0 +1,73 @@
+function onOpen() {
+  var ui = SpreadsheetApp.getUi();
+  ui.createMenu('Trip Tracker')
+    .addItem('Log a New Trip', 'logNewTrip')
+    .addItem('Set Weekly Reminder', 'setWeeklyReminder')
+    .addItem('Remove Weekly Reminder', 'removeWeeklyReminder')
+    .addToUi();
+}
+
+function logNewTrip() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var ui = SpreadsheetApp.getUi();
+  
+  var response = ui.prompt("Enter trip details", 
+    "Format: Destination, Start Date (YYYY-MM-DD), End Date (YYYY-MM-DD), Travel Type, Notes (optional)", 
+    ui.ButtonSet.OK_CANCEL);
+  
+  if (response.getSelectedButton() == ui.Button.OK) {
+    var input = response.getResponseText();
+    var data = input.split(",");
+
+    if (data.length < 3) {
+      ui.alert("Please enter at least the destination, start date, and end date.");
+      return;
+    }
+
+    var destination = data[0].trim();
+    var startDate = data[1].trim();
+    var endDate = data[2].trim();
+    var travelType = data.length > 3 ? data[3].trim() : "N/A";
+    var notes = data.length > 4 ? data[4].trim() : "";
+
+    sheet.appendRow([destination, startDate, endDate, travelType, notes]);
+    ui.alert("Trip logged successfully!");
+  }
+}
+
+function weeklyReminder() {
+  var ui = SpreadsheetApp.getUi();
+  var response = ui.alert("Reminder!", "Did you go on any trips this past week? Click OK to log a trip.", ui.ButtonSet.OK_CANCEL);
+  
+  if (response == ui.Button.OK) {
+    logNewTrip();
+  }
+}
+
+function setWeeklyReminder() {
+  var triggers = ScriptApp.getProjectTriggers();
+  for (var i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() == 'weeklyReminder') {
+      ScriptApp.deleteTrigger(triggers[i]); // Remove old trigger to prevent duplicates
+    }
+  }
+
+  ScriptApp.newTrigger('weeklyReminder')
+    .timeBased()
+    .everyWeeks(1) // Runs once per week
+    .onWeekDay(ScriptApp.WeekDay.SUNDAY) // Default to Sunday
+    .atHour(20) // 8:00 PM
+    .create();
+
+  SpreadsheetApp.getUi().alert("Weekly reminder set for Sunday at 8:00 PM.");
+}
+
+function removeWeeklyReminder() {
+  var triggers = ScriptApp.getProjectTriggers();
+  for (var i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() == 'weeklyReminder') {
+      ScriptApp.deleteTrigger(triggers[i]);
+    }
+  }
+  SpreadsheetApp.getUi().alert("Weekly reminder removed.");
+}
